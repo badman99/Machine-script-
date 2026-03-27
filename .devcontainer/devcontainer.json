@@ -1,8 +1,11 @@
 {
-  "name": "Phoenix Engine Alpine",
+  "name": "Phoenix Engine Auto-Pilot",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   
+  // 🚀 ये जादुई लाइन है: पहले पावर देगा, फिर स्क्रिप्ट चलाएगा!
   "postCreateCommand": "chmod +x scripts/*.sh && bash scripts/init.sh",
+  
+  // 🏎️ ये जैसे ही रीस्टार्ट होगा, टनल को लात मारेगा!
   "postStartCommand": "bash scripts/start_tunnel.sh",
 
   "remoteEnv": {
