@@ -1,27 +1,32 @@
 #!/bin/bash
-echo "🚇 Starting Cloudflare Tunnel..."
+echo "🚀 Starting Tmate Terminal Sharing..."
 
-# 📥 Cloudflared इंस्टॉल करना (Detect Architecture)
-if ! command -v cloudflared &> /dev/null
+# 1. Tmate इंस्टॉल करना (Ubuntu/Alpine compatible)
+if ! command -v tmate &> /dev/null
 then
-    echo "📥 Downloading Cloudflared..."
-    wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /tmp/cloudflared
-    chmod +x /tmp/cloudflared
-    sudo mv /tmp/cloudflared /usr/local/bin/
+    echo "📥 Installing Tmate..."
+    sudo apt update && sudo apt install ttyd tmate -y || sudo apk add tmate --no-cache
 fi
 
-# 🚀 टनल चालू करो (Port 8000 default)
-nohup cloudflared tunnel --url http://localhost:8000 > /tmp/tunnel.log 2>&1 &
+# 2. Tmate को बैकग्राउंड में चालू करना
+echo "🛰️ Launching Tmate session..."
+tmate -S /tmp/tmate.sock new-session -d
+tmate -S /tmp/tmate.sock wait tmate-ready
 
-# 📡 Render को पिंग मारो
-echo "📡 Waiting for Tunnel URL..."
-sleep 15
-TUNNEL_URL=$(grep -o 'https://[-0-9a-z]*\.trycloudflare.com' /tmp/tunnel.log | head -1)
+# 3. Tmate का Web URL और SSH लिंक निकालना
+TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')
+TMATE_SSH=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
 
-if [ -n "$TUNNEL_URL" ]; then
-    echo "✅ URL Found: $TUNNEL_URL"
-    CODESPACE_NAME=$(hostname)
-    curl -X POST "$RENDER_API_URL/update-url" \
-         -H "Content-Type: application/json" \
-         -d "{\"id\": \"$CODESPACE_NAME\", \"url\": \"$TUNNEL_URL\"}"
-fi
+echo "✅ Tmate Ready!"
+echo "🌐 Web: $TMATE_WEB"
+echo "🔑 SSH: $TMATE_SSH"
+
+# 4. Render API को ये दोनों लिंक भेजना (ताकि UI पर दिखें)
+# हम दोनों लिंक्स को एक साथ भेज रहे हैं
+FINAL_URL="Web: $TMATE_WEB | SSH: $TMATE_SSH"
+CODESPACE_NAME=$(hostname)
+
+echo "📡 Sending Tmate links to Render..."
+curl -X POST "$RENDER_API_URL/update-url" \
+     -H "Content-Type: application/json" \
+     -d "{\"id\": \"$CODESPACE_NAME\", \"url\": \"$FINAL_URL\"}"
